@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { AppProps } from "next/dist/next-server/lib/router/router";
 import { CssBaseline, ThemeProvider } from "@material-ui/core";
 import Head from "next/head";
-import theme from "./theme";
+import theme from "../src/theme";
 
 export default function MyApp(props: AppProps): JSX.Element {
   const { Component, pageProps } = props;
