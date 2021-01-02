@@ -17,6 +17,15 @@ export default async function handler(
       response.map((song) => ({
         name: song.name,
         artists: song.artists.map((artist) => artist.name),
+        urls: {
+          lastfm: `https://www.last.fm${song.url}`,
+          ...Object.fromEntries(
+            (song.playlinks ?? []).map((playlink) => [
+              playlink.affiliate,
+              playlink.url,
+            ])
+          ),
+        },
       }))
     );
 
