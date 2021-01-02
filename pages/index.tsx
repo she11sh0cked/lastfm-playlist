@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   FormControl,
@@ -11,16 +11,35 @@ import {
 } from "@material-ui/core";
 import { useRouter } from "next/router";
 
-export default function Home(): JSX.Element {
-  const [form, setForm] = useState({
-    user: "",
-    type: "mix",
-  });
+//* Playlist
 
-  const [playlist, setPlaylist] = useState([]);
+interface ISong {
+  name: string;
+  artists: string[];
+}
+
+type TPlaylist = ISong[];
+
+//* Form
+
+type TType = "mix" | "library" | "recommended";
+
+interface IForm {
+  user: string;
+  type: TType;
+}
+
+export default function Home(): JSX.Element {
+  //* Router
 
   const router = useRouter();
-  const { user, type } = router.query as typeof form;
+  const { user, type } = (router.query as unknown) as IForm;
+  const isQueryOk = useMemo(() => user && type, [type, user]);
+
+  //* Playlist
+
+  const [playlist, setPlaylist] = useState<TPlaylist>([]);
+  const [playlistName, setPlaylistName] = useState("");
 
   const handlePlaylistChange = useCallback(
     (user, type) =>
@@ -30,23 +49,32 @@ export default function Home(): JSX.Element {
     []
   );
 
-  useEffect(() => {
-    if (!user || !type) return;
-    handlePlaylistChange(user, type);
-    setForm({ user, type });
-  }, [handlePlaylistChange, user, type]);
-
-  const handleFormChange = useCallback((e) => {
-    const { name, value } = e.target;
-
-    setForm((prevForm) => ({
-      ...prevForm,
-      [name]: value,
-    }));
+  const handlePlaylistNameChange = useCallback((e) => {
+    const { value } = e.target;
+    setPlaylistName(value);
   }, []);
 
+  //* Form
+
+  const [form, setForm] = useState<IForm>({
+    user: "",
+    type: "mix",
+  });
+
+  const handleFormChange = useCallback(
+    (e: React.ChangeEvent<{ name: string; value: string }>) => {
+      const { name, value } = e.target;
+
+      setForm((prevForm) => ({
+        ...prevForm,
+        [name]: value,
+      }));
+    },
+    []
+  );
+
   const handleFormSubmit = useCallback(
-    (event) => {
+    (event: React.FormEvent) => {
       event.preventDefault();
 
       const pathname = `/${form.user}/${form.type}`;
@@ -57,6 +85,16 @@ export default function Home(): JSX.Element {
     },
     [form.type, form.user, handlePlaylistChange, router]
   );
+
+  //! Effects
+
+  useEffect(() => {
+    if (!isQueryOk) return;
+    handlePlaylistChange(user, type);
+    setForm({ user, type });
+  }, [handlePlaylistChange, isQueryOk, type, user]);
+
+  //! Render
 
   return (
     <>
@@ -87,17 +125,18 @@ export default function Home(): JSX.Element {
               <ListItem key={i}>
                 <ListItemText
                   primary={song.name}
-                  secondary={song.artists.map((artist) => artist.name).join()}
+                  secondary={song.artists.join(", ")}
                 />
               </ListItem>
             ))}
           </List>
           <form autoComplete="off">
             <TextField
-              name="name"
               type="text"
               label="Playlist Name"
               placeholder={`${user}'s ${type}`}
+              value={playlistName}
+              onChange={handlePlaylistNameChange}
             />
             <Button variant="contained" color="primary" type="submit">
               Save
