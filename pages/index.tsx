@@ -22,15 +22,19 @@ export default function Home(): JSX.Element {
   const router = useRouter();
   const { user, type } = router.query as typeof form;
 
+  const handlePlaylistChange = useCallback(
+    (user, type) =>
+      fetch(`/api/playlist/${user}/${type}`)
+        .then((res) => res.json())
+        .then(setPlaylist),
+    []
+  );
+
   useEffect(() => {
     if (!user || !type) return;
-
-    fetch(`/api/playlist/${user}/${type}`)
-      .then((res) => res.json())
-      .then(setPlaylist);
-
+    handlePlaylistChange(user, type);
     setForm({ user, type });
-  }, [type, user]);
+  }, [handlePlaylistChange, user, type]);
 
   const handleFormChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -44,9 +48,14 @@ export default function Home(): JSX.Element {
   const handleFormSubmit = useCallback(
     (event) => {
       event.preventDefault();
-      router.push(`/${form.user}/${form.type}`);
+
+      const pathname = `/${form.user}/${form.type}`;
+
+      if (pathname === router.asPath)
+        handlePlaylistChange(form.user, form.type);
+      else router.push(pathname);
     },
-    [form, router]
+    [form.type, form.user, handlePlaylistChange, router]
   );
 
   return (
