@@ -4,6 +4,7 @@ import {
   FormControl,
   List,
   ListItem,
+  ListItemSecondaryAction,
   ListItemText,
   MenuItem,
   Select,
@@ -16,6 +17,7 @@ import { useRouter } from "next/router";
 interface ISong {
   name: string;
   artists: string[];
+  urls: Record<string, string>;
 }
 
 type TPlaylist = ISong[];
@@ -127,6 +129,17 @@ export default function Home(): JSX.Element {
                   primary={song.name}
                   secondary={song.artists.join(", ")}
                 />
+                <ListItemSecondaryAction>
+                  {Object.keys(song.urls).map((urlKey) => (
+                    <Button
+                      key={urlKey}
+                      href={song.urls[urlKey]}
+                      target="_blank"
+                    >
+                      {urlKey}
+                    </Button>
+                  ))}
+                </ListItemSecondaryAction>
               </ListItem>
             ))}
           </List>
@@ -137,8 +150,9 @@ export default function Home(): JSX.Element {
               placeholder={`${user}'s ${type}`}
               value={playlistName}
               onChange={handlePlaylistNameChange}
+              disabled
             />
-            <Button variant="contained" color="primary" type="submit">
+            <Button disabled variant="contained" color="primary" type="submit">
               Save
             </Button>
           </form>
