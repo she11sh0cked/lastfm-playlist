@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
   FormControl,
@@ -12,8 +12,6 @@ import {
 } from "@material-ui/core";
 import { useRouter } from "next/router";
 
-//* Playlist
-
 interface ISong {
   name: string;
   artists: string[];
@@ -22,8 +20,6 @@ interface ISong {
 
 type TPlaylist = ISong[];
 
-//* Form
-
 type TType = "mix" | "library" | "recommended";
 
 interface IForm {
@@ -31,25 +27,69 @@ interface IForm {
   type: TType;
 }
 
+function usePlaylist(
+  user?: string,
+  type?: TType
+): [TPlaylist, { loading: boolean; refetch(): void }] {
+  const [data, setData] = useState<TPlaylist>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refetch = useCallback(() => {
+    fetch(`/api/playlist/${user}/${type}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setData(data);
+        setLoading(true);
+      });
+  }, [user, type]);
+
+  useEffect(() => {
+    if (user == null || type == null) return;
+    refetch();
+  }, [user, type, refetch]);
+
+  return [data, { loading, refetch }];
+}
+
+function useForm(
+  user?: string,
+  type?: TType
+): [
+  IForm,
+  {
+    set<TKey extends keyof IForm>(
+      name: TKey | string,
+      value: IForm[TKey]
+    ): void;
+  }
+] {
+  const [data, setData] = useState<IForm>({ user: "", type: "mix" });
+
+  const set = useCallback((key, value) => {
+    setData((prevForm) => ({
+      ...prevForm,
+      [key]: value,
+    }));
+  }, []);
+
+  useEffect(() => {
+    if (user == null || type == null) return;
+    setData({ user, type });
+  }, [user, type]);
+
+  return [data, { set }];
+}
+
 export default function Home(): JSX.Element {
   //* Router
 
   const router = useRouter();
   const { user, type } = (router.query as unknown) as IForm;
-  const isQueryOk = useMemo(() => user && type, [type, user]);
 
   //* Playlist
 
-  const [playlist, setPlaylist] = useState<TPlaylist>([]);
+  const [playlist, playlistResult] = usePlaylist(user, type);
   const [playlistName, setPlaylistName] = useState("");
-
-  const handlePlaylistChange = useCallback(
-    (user, type) =>
-      fetch(`/api/playlist/${user}/${type}`)
-        .then((res) => res.json())
-        .then(setPlaylist),
-    []
-  );
 
   const handlePlaylistNameChange = useCallback((e) => {
     const { value } = e.target;
@@ -58,21 +98,14 @@ export default function Home(): JSX.Element {
 
   //* Form
 
-  const [form, setForm] = useState<IForm>({
-    user: "",
-    type: "mix",
-  });
+  const [form, formActions] = useForm(user, type);
 
   const handleFormChange = useCallback(
     (e: React.ChangeEvent<{ name: string; value: string }>) => {
       const { name, value } = e.target;
-
-      setForm((prevForm) => ({
-        ...prevForm,
-        [name]: value,
-      }));
+      formActions.set(name, value);
     },
-    []
+    [formActions]
   );
 
   const handleFormSubmit = useCallback(
@@ -81,22 +114,13 @@ export default function Home(): JSX.Element {
 
       const pathname = `/${form.user}/${form.type}`;
 
-      if (pathname === router.asPath)
-        handlePlaylistChange(form.user, form.type);
+      if (pathname === router.asPath) playlistResult.refetch();
       else router.push(pathname);
     },
-    [form.type, form.user, handlePlaylistChange, router]
+    [form.type, form.user, playlistResult, router]
   );
 
-  //! Effects
-
-  useEffect(() => {
-    if (!isQueryOk) return;
-    handlePlaylistChange(user, type);
-    setForm({ user, type });
-  }, [handlePlaylistChange, isQueryOk, type, user]);
-
-  //! Render
+  //* Render
 
   return (
     <>
