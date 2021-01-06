@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Button,
+  CircularProgress,
   FormControl,
   List,
   ListItem,
@@ -35,11 +36,12 @@ function usePlaylist(
   const [loading, setLoading] = useState(true);
 
   const refetch = useCallback(() => {
+    setLoading(true);
     fetch(`/api/playlist/${user}/${type}`)
       .then((res) => res.json())
       .then((data) => {
         setData(data);
-        setLoading(true);
+        setLoading(false);
       });
   }, [user, type]);
 
@@ -144,6 +146,7 @@ export default function Home(): JSX.Element {
           Generate
         </Button>
       </form>
+      {playlistResult.loading && <CircularProgress />}
       {playlist.length > 0 && (
         <>
           <List>
